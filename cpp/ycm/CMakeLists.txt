@@ -22,10 +22,10 @@ set( CLIENT_LIB "ycm_client_support" )
 set( SERVER_LIB "ycm_core" )
 
 set( Python_ADDITIONAL_VERSIONS 2.7 2.6 )
-find_package( PythonLibs 2.6 REQUIRED )
+find_package( PythonLibs 2.7 REQUIRED )
 # The version of PythonInterp controls the version of boost.python which
 # is pulled in later, otherwise the highest python version is used
-find_package( PythonInterp 2.6 REQUIRED )
+find_package( PythonInterp 2.7 REQUIRED )
 
 if ( NOT PYTHONLIBS_VERSION_STRING VERSION_LESS "3.0.0" )
   message( FATAL_ERROR
