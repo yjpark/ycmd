@@ -20,6 +20,7 @@
 import ycm_core
 import os
 import inspect
+import re
 from ycmd import extra_conf_store
 from ycmd.utils import ToUtf8IfNeeded, OnMac, OnWindows
 from ycmd.responses import NoExtraConfDetected
@@ -50,6 +51,11 @@ MAC_INCLUDE_PATHS = [
  '/Library/Frameworks',
 ]
 
+# Use a regex to correctly detect c++/c language for both versioned and
+# non-versioned compiler executable names suffixes
+# (e.g., c++, g++, clang++, g++-4.9, clang++-3.7, c++-10.2 etc).
+# See Valloric/ycmd#266
+CPP_COMPILER_REGEX = re.compile( r'\+\+(-\d+(\.\d+){0,2})?$' )
 
 class Flags( object ):
   """Keeps track of the flags necessary to compile a file.
@@ -197,25 +203,33 @@ def _SanitizeFlags( flags ):
   return vector
 
 
+def _RemoveFlagsPrecedingCompiler( flags ):
+  """Assuming that the flag just before the first flag starting with a dash is
+  the compiler path, removes all flags preceding it."""
+
+  for index, flag in enumerate( flags ):
+    if flag.startswith( '-' ):
+      return ( flags[ index - 1: ] if index > 1 else
+               flags )
+  return flags[ :-1 ]
+
+
 def _CompilerToLanguageFlag( flags ):
-  """When flags come from the compile_commands.json file, the first flag is
-  usually the path to the compiler that should be invoked. We want to replace
-  it with a corresponding language flag.
+  """When flags come from the compile_commands.json file, the flag preceding
+  the first flag starting with a dash is usually the path to the compiler that
+  should be invoked.  We want to replace it with a corresponding language flag.
   E.g., -x c for gcc and -x c++ for g++."""
 
-  # First flag doesn't start with a '-', so it's probably a compiler.
-  if not flags[ 0 ].startswith( '-' ):
+  flags = _RemoveFlagsPrecedingCompiler( flags )
 
-    # If the compiler ends with '++', it's probably a C++ compiler
-    # (E.g., c++, g++, clang++, etc).
-    if flags[ 0 ].endswith( '++' ):
-        language = 'c++'
-    else:
-        language = 'c'
+  # First flag is now the compiler path or a flag starting with a dash
+  if flags[ 0 ].startswith( '-' ):
+    return flags
 
-    flags = [ '-x', language ] + flags[ 1: ]
+  language = ( 'c++' if CPP_COMPILER_REGEX.search( flags[ 0 ] ) else
+               'c' )
 
-  return flags
+  return [ '-x', language ] + flags[ 1: ]
 
 
 def _RemoveUnusedFlags( flags, filename ):

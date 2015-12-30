@@ -182,27 +182,34 @@ def CompilerToLanguageFlag_Passthrough_test():
        flags._CompilerToLanguageFlag( [ '-foo', '-bar' ] ) )
 
 
-def CompilerToLanguageFlag_ReplaceCCompiler_test():
-  def tester( path ):
-    eq_( [ '-x', 'c' ] + expected,
-        flags._CompilerToLanguageFlag( [ path ] + expected ) )
-
-  compiler_paths = [ 'cc', 'gcc', 'clang', '/usr/bin/cc',
-                     '/some/other/path', 'some_command' ]
+def _ReplaceCompilerTester( compiler, language ):
+  to_removes = [
+    [],
+    [ '/usr/bin/ccache' ],
+    [ 'some_command', 'another_command' ]
+  ]
   expected = [ '-foo', '-bar' ]
 
-  for compiler in compiler_paths:
-    yield tester, compiler
+  for to_remove in to_removes:
+    eq_( [ '-x', language ] + expected,
+         flags._CompilerToLanguageFlag( to_remove + [ compiler ] + expected ) )
+
+
+def CompilerToLanguageFlag_ReplaceCCompiler_test():
+  compilers = [ 'cc', 'gcc', 'clang', '/usr/bin/cc',
+                '/some/other/path', 'some_command' ]
+
+  for compiler in compilers:
+    yield _ReplaceCompilerTester, compiler, 'c'
 
 
 def CompilerToLanguageFlag_ReplaceCppCompiler_test():
-  def tester( path ):
-    eq_( [ '-x', 'c++' ] + expected,
-        flags._CompilerToLanguageFlag( [ path ] + expected ) )
+  compilers = [ 'c++', 'g++', 'clang++', '/usr/bin/c++',
+                '/some/other/path++', 'some_command++',
+                'c++-5', 'g++-5.1', 'clang++-3.7.3', '/usr/bin/c++-5',
+                'c++-5.11', 'g++-50.1.49', 'clang++-3.12.3', '/usr/bin/c++-10',
+                '/some/other/path++-4.9.3', 'some_command++-5.1',
+                '/some/other/path++-4.9.31', 'some_command++-5.10' ]
 
-  compiler_paths = [ 'c++', 'g++', 'clang++', '/usr/bin/c++',
-                     '/some/other/path++', 'some_command++' ]
-  expected = [ '-foo', '-bar' ]
-
-  for compiler in compiler_paths:
-    yield tester, compiler
+  for compiler in compilers:
+    yield _ReplaceCompilerTester, compiler, 'c++'
